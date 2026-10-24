@@ -1,0 +1,6 @@
+{
+  "name": "DocuCraft Pro - Advanced Document Suite & PDF Studio",
+  "description": "Microsoft Word-style document suite with advanced typography, rich colors, multi-format conversion, and full PDF editing tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
