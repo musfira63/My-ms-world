@@ -23,6 +23,7 @@ interface TopBarProps {
   saveStatus: SaveStatus;
   lastSavedAt: number;
   onSaveNow: () => void;
+  onSaveMus?: () => void;
   onOpenDocManager: () => void;
   onOpenExport: () => void;
   onOpenAccessibility: () => void;
@@ -40,6 +41,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   saveStatus,
   lastSavedAt,
   onSaveNow,
+  onSaveMus,
   onOpenDocManager,
   onOpenExport,
   onOpenAccessibility,
@@ -166,15 +168,27 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Primary actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {onSaveMus && (
+            <button
+              type="button"
+              onClick={onSaveMus}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-colors whitespace-nowrap shadow-xs focus-visible:ring-2 focus-visible:ring-white border border-emerald-400/30"
+              title="Save directly into native .mus file extension"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Save as .mus</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenExport}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-md transition-colors whitespace-nowrap shadow-xs focus-visible:ring-2 focus-visible:ring-white"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-md transition-colors whitespace-nowrap shadow-xs focus-visible:ring-2 focus-visible:ring-white"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export &amp; Share</span>
+            <span>Export As...</span>
           </button>
         </div>
       </header>
@@ -191,6 +205,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Save className="w-3.5 h-3.5" />
             <span>Save</span>
           </button>
+
+          {onSaveMus && (
+            <button
+              type="button"
+              onClick={onSaveMus}
+              title="Quick save to native .mus file"
+              className="flex items-center gap-1 text-emerald-400 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-emerald-600/20 font-medium"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Save .mus</span>
+            </button>
+          )}
 
           <div className="h-3 w-px bg-slate-700" />
 
@@ -218,7 +244,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 title="Click to rename document"
               >
                 <span>{title}</span>
-                <span className="text-[10px] text-slate-400 font-normal">.docx</span>
+                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.2 rounded border border-emerald-500/40">.mus</span>
               </button>
             )}
           </div>
