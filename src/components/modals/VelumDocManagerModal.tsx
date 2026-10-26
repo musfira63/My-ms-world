@@ -9,10 +9,12 @@ import {
   Upload, 
   Clock, 
   Search, 
-  AlertTriangle 
+  AlertTriangle,
+  Download
 } from 'lucide-react';
 import { VelumDocument } from '../../types/document';
 import { importDocxFile } from '../../utils/docxHandler';
+import { parseMusFile, saveAsMusFile } from '../../utils/musFileHandler';
 
 interface VelumDocManagerModalProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ interface VelumDocManagerModalProps {
   onDuplicateDocument: (docId: string) => void;
   onDeleteDocument: (docId: string) => void;
   onImportDocument: (title: string, html: string) => void;
+  onLoadFullDocument?: (doc: VelumDocument) => void;
 }
 
 export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
@@ -36,6 +39,7 @@ export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
   onDuplicateDocument,
   onDeleteDocument,
   onImportDocument,
+  onLoadFullDocument,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -51,7 +55,20 @@ export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+    if (file.name.endsWith('.mus')) {
+      try {
+        const parsedDoc = await parseMusFile(file);
+        if (onLoadFullDocument) {
+          onLoadFullDocument(parsedDoc);
+        } else {
+          onImportDocument(parsedDoc.title, parsedDoc.contentHtml);
+        }
+        onClose();
+      } catch (err) {
+        console.error('Failed to import .mus file:', err);
+        alert(`Failed to open .mus document: ${(err as Error).message}`);
+      }
+    } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
       try {
         const { title, html, warnings } = await importDocxFile(file);
         if (warnings.length > 0) {
@@ -143,17 +160,18 @@ export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
           <input
             type="file"
             ref={fileInputRef}
-            accept=".docx,.json,.html"
+            accept=".mus,.docx,.doc,.json,.html"
             onChange={handleFileChange}
             className="hidden"
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 text-neutral-700 rounded-lg text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-semibold"
+            title="Open or import a native .mus or .docx document"
           >
-            <Upload className="w-4 h-4" />
-            <span>Import DOCX</span>
+            <Upload className="w-4 h-4 text-emerald-600" />
+            <span>Open .mus / DOCX</span>
           </button>
         </div>
 
@@ -183,6 +201,9 @@ export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-xs text-neutral-900 truncate">
                           {doc.title}
+                        </span>
+                        <span className="text-[9px] font-mono font-semibold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                          .mus
                         </span>
                         {isActive && (
                           <span className="text-[10px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded">
@@ -234,6 +255,14 @@ export const VelumDocManagerModal: React.FC<VelumDocManagerModalProps> = ({
                             Open
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => saveAsMusFile(doc)}
+                          className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded"
+                          title="Save / Download as .mus file"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => onDuplicateDocument(doc.id)}
