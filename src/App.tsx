@@ -39,6 +39,7 @@ import { SymbolsModal } from './components/modals/SymbolsModal';
 import { PageSetupModal } from './components/modals/PageSetupModal';
 import { SpeechVoiceService } from './utils/speechVoiceService';
 import { NovelChapter } from './types/document';
+import { saveAsMusFile, openMusFileDialog } from './utils/musFileHandler';
 
 function WordProcessorApp() {
   const { settings: accessibility, updateSettings } = useAccessibility();
@@ -255,6 +256,32 @@ function WordProcessorApp() {
     input.click();
   };
 
+  // Direct .mus Save & Download
+  const handleSaveAsMus = () => {
+    saveAsMusFile(currentDocument);
+  };
+
+  // Direct .mus Open & Import
+  const handleOpenMusFile = () => {
+    openMusFileDialog(async (importedDoc) => {
+      await performSave(importedDoc);
+      setCurrentDocument(importedDoc);
+      const all = await listLocalDocuments();
+      setDocumentsList(all);
+      setLastSavedAt(importedDoc.lastSavedAt || Date.now());
+      setAppMode('word');
+      setActiveTab('home');
+    });
+  };
+
+  const handleLoadFullDocument = async (doc: VelumDocument) => {
+    await performSave(doc);
+    setCurrentDocument(doc);
+    const all = await listLocalDocuments();
+    setDocumentsList(all);
+    setLastSavedAt(doc.lastSavedAt || Date.now());
+  };
+
   // Convert extracted PDF text to editable Word document
   const handleConvertPdfToWord = async (html: string, fileName: string) => {
     const title = fileName ? fileName.replace(/\.pdf$/i, '') : 'Converted PDF Document';
@@ -427,6 +454,7 @@ function WordProcessorApp() {
         saveStatus={saveStatus}
         lastSavedAt={lastSavedAt}
         onSaveNow={() => performSave(currentDocument)}
+        onSaveMus={handleSaveAsMus}
         onOpenDocManager={() => setIsDocManagerModalOpen(true)}
         onOpenExport={() => setIsExportModalOpen(true)}
         onOpenAccessibility={() => setIsAccessibilityModalOpen(true)}
@@ -471,6 +499,8 @@ function WordProcessorApp() {
           onOpenAiAssistantModal={() => setIsAiModalOpen(true)}
           onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
           onImportDocx={handleDirectImportDocx}
+          onSaveMus={handleSaveAsMus}
+          onOpenMusFile={handleOpenMusFile}
           onOpenPdfStudio={() => setAppMode('pdf_studio')}
           onOpenNovelModal={() => setIsNovelModalOpen(true)}
           onOpenDrawingModal={() => setIsDrawingModalOpen(true)}
@@ -605,6 +635,7 @@ function WordProcessorApp() {
         onDuplicateDocument={handleDuplicateDocument}
         onDeleteDocument={handleDeleteDocument}
         onImportDocument={handleImportDocument}
+        onLoadFullDocument={handleLoadFullDocument}
       />
 
       <VelumExportModal
