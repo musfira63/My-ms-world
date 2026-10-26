@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -45,10 +45,8 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
   onPageCountChange,
 }, ref) => {
   const [pageCount, setPageCount] = useState<number>(1);
-  const lastAppliedExternalContentRef = useRef<string | null>(null);
 
   const editor = useEditor({
-    editable: true,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -111,29 +109,24 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
     getHtml: () => editor?.getHTML() || '',
     getJSON: () => editor?.getJSON() || {},
     setHtml: (html: string) => {
-      const nextHtml = html || '<p></p>';
-      lastAppliedExternalContentRef.current = nextHtml;
-      editor?.commands.setContent(nextHtml, { emitUpdate: false });
+      editor?.commands.setContent(html, { emitUpdate: false });
     },
   }));
 
-  // Update content only when the parent intentionally provides new external content.
+  // Update content if initialContent changes externally (e.g. file import, template select)
   useEffect(() => {
-    if (!editor) return;
-
-    const nextContent = initialContent || '<p></p>';
-
-    if (lastAppliedExternalContentRef.current === nextContent) {
-      return;
+    if (editor && initialContent !== editor.getHTML()) {
+      editor.commands.setContent(initialContent, { emitUpdate: false });
     }
-
-    lastAppliedExternalContentRef.current = nextContent;
-    editor.commands.setContent(nextContent, { emitUpdate: false });
   }, [initialContent, editor]);
+
+  const notifiedEditorRef = useRef<any>(null);
+  const pageCountRef = useRef<number>(1);
 
   // Notify parent component when editor instance is initialized
   useEffect(() => {
-    if (editor && onEditorReady) {
+    if (editor && onEditorReady && notifiedEditorRef.current !== editor) {
+      notifiedEditorRef.current = editor;
       onEditorReady(editor);
     }
   }, [editor, onEditorReady]);
@@ -142,7 +135,7 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
   useEffect(() => {
     if (!editor) return;
 
-    const mappedSize: 'A4' | 'Letter' | 'Legal' | 'A5' =
+    const mappedSize: 'A4' | 'Letter' | 'Legal' | 'A5' = 
       pageSettings.size === 'letter' ? 'Letter' :
       pageSettings.size === 'legal' ? 'Legal' :
       pageSettings.size === 'executive' ? 'A5' : 'A4';
@@ -162,19 +155,16 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
     }
   }, [editor, pageSettings.size, pageSettings.orientation, pageSettings.margins.top, pageSettings.margins.bottom]);
 
-  // Track page count changes dynamically
+  // Track page count changes dynamically without side-effects in reducer
   useEffect(() => {
     if (!editor) return;
 
     const checkPageCount = () => {
       const count = editor.storage?.pagination?.pageCount || 1;
-      setPageCount((prev) => {
-        if (prev !== count) {
-          onPageCountChange?.(count);
-          return count;
-        }
-        return prev;
-      });
+      if (pageCountRef.current !== count) {
+        pageCountRef.current = count;
+        setPageCount(count);
+      }
     };
 
     checkPageCount();
@@ -182,7 +172,12 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
     return () => {
       editor.off('transaction', checkPageCount);
     };
-  }, [editor, onPageCountChange]);
+  }, [editor]);
+
+  // Safely inform parent component of page count updates in an isolated effect
+  useEffect(() => {
+    onPageCountChange?.(pageCount);
+  }, [pageCount, onPageCountChange]);
 
   // Dimensions based on page size and orientation (A4 baseline: 210mm x 297mm @ 96 DPI: ~794px x ~1123px)
   const isLandscape = pageSettings.orientation === 'landscape';
@@ -247,9 +242,9 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
   }
 
   return (
-    <div
+    <div 
       className="flex-1 overflow-auto flex flex-col items-center py-8 px-4 transition-colors select-text relative cursor-default"
-      style={{
+      style={{ 
         backgroundColor: workspaceBg,
         ['--workspace-bg' as any]: workspaceBg,
       }}
@@ -261,7 +256,7 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
     >
       {/* Visual Page Ruler (if enabled) */}
       {pageSettings.showRuler && !accessibility.focusMode && (
-        <div
+        <div 
           className="bg-white border border-neutral-300 shadow-xs mb-3 flex items-end h-6 select-none rounded-t-xs text-[9px] text-neutral-400 font-mono relative overflow-hidden"
           style={{ width: `${paperWidthPx * (zoomLevel / 100)}px` }}
           aria-hidden="true"
@@ -275,11 +270,11 @@ export const VelumEditor = forwardRef<VelumEditorRef, VelumEditorProps>(({
             ))}
           </div>
           {/* Margin markers */}
-          <div
+          <div 
             className="absolute top-0 bottom-0 bg-neutral-100/70 border-r border-blue-400"
             style={{ width: `${pageSettings.margins.left * dpi * (zoomLevel / 100)}px` }}
           />
-          <div
+          <div 
             className="absolute top-0 bottom-0 right-0 bg-neutral-100/70 border-l border-blue-400"
             style={{ width: `${pageSettings.margins.right * dpi * (zoomLevel / 100)}px` }}
           />
